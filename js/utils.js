@@ -7,10 +7,9 @@ class Utils {
     // API CALL
     // ===============================
     static async apiCall(path, options = {}) {
-        if (!window.CONFIG) throw new Error("CONFIG is not defined. Please include config.js before utils.js");
+        if (!window.CONFIG) throw new Error("CONFIG is not defined");
 
         let url = '';
-
         if (path.startsWith('?') || path.startsWith('/')) {
             url = `${window.CONFIG.API_BASE_URL}${path}`;
         } else {
@@ -77,13 +76,7 @@ class Utils {
 
     static formatDate(dateString) {
         const date = new Date(dateString);
-        const options = {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
+        const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
         return date.toLocaleDateString('id-ID', options);
     }
 
@@ -91,15 +84,12 @@ class Utils {
         const prefix = 'ORD';
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let result = '';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        for (let i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
         return `${prefix}-${result}`;
     }
 
     static generateTrackingLink(orderId) {
-        const baseUrl = window.location.origin;
-        return `${baseUrl}/track.html?id=${orderId}`;
+        return `${window.location.origin}/track.html?id=${orderId}`;
     }
 
     static validatePhoneNumber(phone) {
@@ -113,19 +103,19 @@ class Utils {
     }
 
     static showToast(message, type = 'success') {
-        if (!window.CONFIG) return console.warn("CONFIG not found");
+        if (!window.CONFIG) throw new Error("CONFIG is not defined");
 
         const toast = document.createElement('div');
         toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 flex items-center space-x-2 ${
-            type === 'success' ? 'bg-green-500 text-white' : 
-            type === 'error' ? 'bg-red-500 text-white' : 
-            type === 'warning' ? 'bg-yellow-500 text-white' : 
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            type === 'warning' ? 'bg-yellow-500 text-white' :
             'bg-blue-500 text-white'
         }`;
 
-        const icon = type === 'success' ? 'check-circle' : 
-                     type === 'error' ? 'exclamation-circle' : 
-                     type === 'warning' ? 'exclamation-triangle' : 
+        const icon = type === 'success' ? 'check-circle' :
+                     type === 'error' ? 'exclamation-circle' :
+                     type === 'warning' ? 'exclamation-triangle' :
                      'info-circle';
 
         toast.innerHTML = `<i class="fas fa-${icon}"></i><span>${message}</span>`;
@@ -168,44 +158,65 @@ class Utils {
         return true;
     }
 
-    static isAdminLoggedIn() { 
+    static getStatusBadge(status, type = 'order') {
+        const statusConfig = type === 'payment' ?
+            { 'Pending':'bg-yellow-100 text-yellow-800','Dibayar':'bg-green-100 text-green-800','Gagal':'bg-red-100 text-red-800','Dikembalikan':'bg-gray-100 text-gray-800' } :
+            { 'Pending':'bg-yellow-100 text-yellow-800','Diproses':'bg-blue-100 text-blue-800','Dikirim':'bg-purple-100 text-purple-800','Selesai':'bg-green-100 text-green-800','Dibatalkan':'bg-red-100 text-red-800' };
+        const className = statusConfig[status] || 'bg-gray-100 text-gray-800';
+        return `<span class="px-2 py-1 text-xs font-medium rounded-full ${className}">${status}</span>`;
+    }
+
+    static async copyToClipboard(text) {
+        try { await navigator.clipboard.writeText(text); return true; }
+        catch (err) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            return true;
+        }
+    }
+
+    static isAdminLoggedIn() {
         const token = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN);
         const name = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME);
-        return !!(token && name); 
+        return !!(token && name);
     }
 
-    static getAdminInfo() { 
-        return { 
-            token: localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN), 
-            name: localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME) 
-        }; 
+    static getAdminInfo() {
+        return { token: localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN), name: localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME) };
     }
 
-    static setAdminSession(token, name) { 
-        localStorage.setItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN, token); 
-        localStorage.setItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME, name); 
+    static setAdminSession(token, name) {
+        localStorage.setItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN, token);
+        localStorage.setItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME, name);
     }
 
-    static clearAdminSession() { 
-        localStorage.removeItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN); 
-        localStorage.removeItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME); 
+    static clearAdminSession() {
+        localStorage.removeItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN);
+        localStorage.removeItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME);
     }
 
-    static requireAdmin() { 
-        if (!this.isAdminLoggedIn()) { 
-            window.location.href='admin-login.html'; 
-            return false; 
-        } 
-        return true; 
+    static requireAdmin() {
+        if (!this.isAdminLoggedIn()) {
+            window.location.href = 'admin-login.html';
+            return false;
+        }
+        return true;
     }
 
-    static sanitizeHtml(html) { const div = document.createElement('div'); div.textContent = html; return div.innerHTML; }
+    static sanitizeHtml(html) {
+        const div = document.createElement('div');
+        div.textContent = html;
+        return div.innerHTML;
+    }
+
     static truncateText(text, maxLength) { return text.length <= maxLength ? text : text.substr(0, maxLength) + '...'; }
     static scrollToTop() { window.scrollTo({ top:0, behavior:'smooth' }); }
-    static isInViewport(element) { 
-        const rect = element.getBoundingClientRect(); 
-        return rect.top>=0 && rect.left>=0 && rect.bottom<=(window.innerHeight||document.documentElement.clientHeight) && rect.right<=(window.innerWidth||document.documentElement.clientWidth); 
-    }
+    static isInViewport(element) { const rect = element.getBoundingClientRect(); return rect.top>=0 && rect.left>=0 && rect.bottom<=(window.innerHeight||document.documentElement.clientHeight) && rect.right<=(window.innerWidth||document.documentElement.clientWidth); }
+
 }
 
 // Export untuk Node.js (opsional)
