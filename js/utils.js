@@ -2,7 +2,7 @@
 // CONFIGURATION
 // ===============================
 const CONFIG = {
-    API_BASE_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec', // Ganti dengan Web App URL kamu
+    API_BASE_URL: 'https://script.google.com/macros/s/AKfycbwjNPRowheb0lZOXu8j0eygufVVB2pJPuYJMDANTXDCTbelOVB3m_pKk31sdj83SqAe/exec', // Ganti dengan Web App URL kamu
     TOAST_DURATION: 3000,
     MAX_IMAGE_SIZE: 5 * 1024 * 1024, // 5MB
     ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
@@ -219,3 +219,4 @@ class Utils {
 
 // Export untuk Node.js (opsional)
 if (typeof module !== 'undefined' && module.exports) { module.exports = Utils; }
+
