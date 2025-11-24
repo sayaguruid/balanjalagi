@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Pemesanan - Toko Online</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .payment-method {
+            transition: all 0.3s ease;
+        }
+        .payment-method:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .payment-method.selected {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loading {
+            display: none;
+        }
+        .loading.active {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-store text-green-600 mr-2"></i>
+                    Toko Online
+                </h1>
+                <nav class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-600 hover:text-green-600">Katalog</a>
+                    <a href="track.html" class="text-gray-600 hover:text-green-600">Tracking</a>
+                    <a href="admin-login.html" class="text-gray-600 hover:text-green-600">
+                        <i class="fas fa-user-shield"></i> Admin
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Order Form -->
+            <div class="bg-white rounded-lg shadow-sm p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-shopping-cart text-green-600 mr-2"></i>
+                    Form Pemesanan
+                </h2>
+
+                <!-- Product Info -->
+                <div id="productInfo" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-4">
+                        <img id="productImage" src="" alt="" class="w-20 h-20 object-cover rounded-lg">
+                        <div>
+                            <h3 id="productName" class="font-semibold text-gray-800"></h3>
+                            <p class="text-gray-600">Harga: <span id="productPrice"></span> x <span id="productQty"></span></p>
+                            <p class="text-lg font-bold text-green-600">Total: <span id="totalPrice"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="orderForm">
+                    <!-- Customer Information -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-4">Informasi Pelanggan</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nama Lengkap <span class="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="customerName" 
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="Masukkan nama lengkap"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nomor WhatsApp <span class="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="tel" 
+                                    id="customerPhone" 
+                                    required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="08xxxxxxxxxx"
+                                >
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Catatan (Opsional)
+                            </label>
+                            <textarea 
+                                id="customerNote" 
+                                rows="3"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="Catatan khusus untuk pesanan Anda"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-4">Metode Pembayaran <span class="text-red-500">*</span></h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="payment-method border-2 border-gray-200 rounded-lg p-4 cursor-pointer" data-method="qris">
+                                <div class="text-center">
+                                    <i class="fas fa-qrcode text-3xl text-green-600 mb-2"></i>
+                                    <h4 class="font-semibold">QRIS</h4>
+                                    <p class="text-sm text-gray-600">Scan QR Code</p>
+                                </div>
+                            </div>
+                            <div class="payment-method border-2 border-gray-200 rounded-lg p-4 cursor-pointer" data-method="transfer">
+                                <div class="text-center">
+                                    <i class="fas fa-university text-3xl text-blue-600 mb-2"></i>
+                                    <h4 class="font-semibold">Transfer Bank</h4>
+                                    <p class="text-sm text-gray-600">BCA/BRI/BNI/Mandiri</p>
+                                </div>
+                            </div>
+                            <div class="payment-method border-2 border-gray-200 rounded-lg p-4 cursor-pointer" data-method="cod">
+                                <div class="text-center">
+                                    <i class="fas fa-hand-holding-usd text-3xl text-purple-600 mb-2"></i>
+                                    <h4 class="font-semibold">COD</h4>
+                                    <p class="text-sm text-gray-600">Bayar di tempat</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Instructions -->
+                    <div id="paymentInstructions" class="mb-6 hidden">
+                        <!-- QRIS Instructions -->
+                        <div id="qrisInstructions" class="hidden">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-green-800 mb-3">Instruksi Pembayaran QRIS</h4>
+                                <div class="text-center mb-4">
+                                    <img src="https://via.placeholder.com/200x200/10b981/ffffff?text=QRIS" alt="QRIS" class="mx-auto rounded-lg">
+                                    <p class="text-sm text-gray-600 mt-2">Scan QR Code di atas menggunakan aplikasi e-wallet Anda</p>
+                                </div>
+                                <div class="text-sm text-gray-700">
+                                    <p>1. Buka aplikasi e-wallet (GoPay, OVO, Dana, dll)</p>
+                                    <p>2. Pilih menu "Scan QR"</p>
+                                    <p>3. Arahkan kamera ke QR Code di atas</p>
+                                    <p>4. Masukkan jumlah pembayaran: <span class="font-bold text-green-600" id="qrisAmount"></span></p>
+                                    <p>5. Selesaikan pembayaran</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transfer Instructions -->
+                        <div id="transferInstructions" class="hidden">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-blue-800 mb-3">Instruksi Pembayaran Transfer</h4>
+                                <div class="space-y-3">
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="font-semibold">BCA</p>
+                                        <p class="text-sm">No. Rekening: 1234567890</p>
+                                        <p class="text-sm">Atas Nama: Toko Online</p>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="font-semibold">BRI</p>
+                                        <p class="text-sm">No. Rekening: 0987654321</p>
+                                        <p class="text-sm">Atas Nama: Toko Online</p>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="font-semibold">BNI</p>
+                                        <p class="text-sm">No. Rekening: 1122334455</p>
+                                        <p class="text-sm">Atas Nama: Toko Online</p>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-3">
+                                        <p class="font-semibold">Mandiri</p>
+                                        <p class="text-sm">No. Rekening: 5544332211</p>
+                                        <p class="text-sm">Atas Nama: Toko Online</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 text-sm text-gray-700">
+                                    <p>Jumlah pembayaran: <span class="font-bold text-blue-600" id="transferAmount"></span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COD Instructions -->
+                        <div id="codInstructions" class="hidden">
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-purple-800 mb-3">Instruksi Pembayaran COD</h4>
+                                <div class="text-sm text-gray-700">
+                                    <p>1. Pesanan Anda akan segera diproses</p>
+                                    <p>2. Kurir akan menghubungi Anda untuk konfirmasi pengiriman</p>
+                                    <p>3. Pembayaran dilakukan saat barang diterima</p>
+                                    <p>4. Siapkan uang pas: <span class="font-bold text-purple-600" id="codAmount"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Proof Upload -->
+                    <div id="paymentProofSection" class="mb-6 hidden">
+                        <h3 class="text-lg font-semibold mb-4">Upload Bukti Pembayaran</h3>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <input type="file" id="paymentProof" accept="image/*" class="hidden">
+                            <label for="paymentProof" class="cursor-pointer">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                <p class="text-gray-600">Klik untuk upload bukti pembayaran</p>
+                                <p class="text-sm text-gray-500">Format: JPG, PNG, GIF (Max: 5MB)</p>
+                            </label>
+                            <div id="previewContainer" class="mt-4 hidden">
+                                <img id="previewImage" src="" alt="Preview" class="mx-auto max-h-48 rounded-lg">
+                                <button type="button" id="removeImage" class="mt-2 text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i> Hapus Gambar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex items-center justify-between">
+                        <a href="index.html" class="text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Kembali ke Katalog
+                        </a>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            <i class="fas fa-check mr-2"></i>
+                            Konfirmasi Pesanan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center">
+        <div class="bg-white rounded-lg p-8 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Sedang memproses pesanan...</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Toko Online. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/order.js"></script>
+</body>
+</html>
