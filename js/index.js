@@ -40,26 +40,28 @@ class ProductCatalog {
         } catch (error) {
             console.error('Error loading products:', error);
             Utils.showToast('Gagal memuat produk. Silakan coba lagi.', 'error');
+            this.filteredProducts = [];
+            this.renderProducts(); // pastikan empty state muncul
         } finally {
             Utils.hideLoading(this.loadingState);
         }
     }
 
     filterProducts(query) {
-        const q = query.toLowerCase();
+        const q = query.trim().toLowerCase();
         this.filteredProducts = this.products.filter(p => p.name.toLowerCase().includes(q));
     }
 
     sortProducts(sortBy) {
         switch (sortBy) {
             case 'name':
-                this.filteredProducts.sort((a,b) => a.name.localeCompare(b.name));
+                this.filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
                 break;
             case 'price-low':
-                this.filteredProducts.sort((a,b) => a.price - b.price);
+                this.filteredProducts.sort((a, b) => a.price - b.price);
                 break;
             case 'price-high':
-                this.filteredProducts.sort((a,b) => b.price - a.price);
+                this.filteredProducts.sort((a, b) => b.price - a.price);
                 break;
         }
     }
@@ -67,7 +69,7 @@ class ProductCatalog {
     renderProducts() {
         this.productsGrid.innerHTML = '';
 
-        if (this.filteredProducts.length === 0) {
+        if (!this.filteredProducts.length) {
             this.emptyState.classList.remove('hidden');
             return;
         } else {
@@ -81,7 +83,7 @@ class ProductCatalog {
             const imgSrc = product.image || window.CONFIG.DEFAULT_PRODUCT_IMAGE;
 
             card.innerHTML = `
-                <img src="${imgSrc}" alt="${Utils.sanitizeHtml(product.name)}" class="w-full h-48 object-cover">
+                <img src="${imgSrc}" alt="${Utils.sanitizeHtml(product.name)}" class="w-full h-48 object-cover" onerror="this.src='${window.CONFIG.DEFAULT_PRODUCT_IMAGE}'">
                 <div class="p-4">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">${Utils.truncateText(Utils.sanitizeHtml(product.name), 50)}</h3>
                     <p class="text-gray-600 mb-2">${Utils.truncateText(Utils.sanitizeHtml(product.description || ''), 80)}</p>
