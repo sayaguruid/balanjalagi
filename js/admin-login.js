@@ -59,19 +59,24 @@ class AdminLogin {
             return;
         }
 
+        // Optional: show loading
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = 'Memproses...';
+        }
+
         try {
-            const response = await Utils.apiCall('/admin/login', {
+            // FIXED ENDPOINT → dari "/admin/login" menjadi "admin-login"
+            const response = await Utils.apiCall('admin-login', {
                 method: 'POST',
                 body: JSON.stringify({ username, password })
             });
 
             if (response.success) {
-                // Store admin session
                 Utils.setAdminSession(response.token, response.name);
-                
                 Utils.showToast('Login berhasil!', 'success');
-                
-                // Redirect to dashboard
+
                 setTimeout(() => {
                     window.location.href = 'admin-dashboard.html';
                 }, 1000);
@@ -83,6 +88,12 @@ class AdminLogin {
             console.error('Login error:', error);
             this.showError('Terjadi kesalahan. Silakan coba lagi.');
         }
+
+        // Reset loading
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = 'Login';
+        }
     }
 
     showError(message) {
@@ -92,7 +103,7 @@ class AdminLogin {
         if (errorElement && errorText) {
             errorText.textContent = message;
             errorElement.classList.remove('hidden');
-            
+
             // Auto hide after 5 seconds
             setTimeout(() => {
                 errorElement.classList.add('hidden');
