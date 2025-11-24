@@ -1,5 +1,4 @@
-// JavaScript for admin-login.html (Admin Login)
-
+// admin-login.js
 class AdminLogin {
     constructor() {
         this.init();
@@ -11,21 +10,17 @@ class AdminLogin {
     }
 
     setupEventListeners() {
-        // Form submission
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', e => {
                 e.preventDefault();
                 this.handleLogin();
             });
         }
 
-        // Toggle password visibility
         const togglePassword = document.getElementById('togglePassword');
         if (togglePassword) {
-            togglePassword.addEventListener('click', () => {
-                this.togglePasswordVisibility();
-            });
+            togglePassword.addEventListener('click', () => this.togglePasswordVisibility());
         }
     }
 
@@ -39,35 +34,33 @@ class AdminLogin {
         const passwordInput = document.getElementById('password');
         const toggleIcon = document.querySelector('#togglePassword i');
 
+        if (!passwordInput || !toggleIcon) return;
+
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
-            toggleIcon.classList.remove('fa-eye');
-            toggleIcon.classList.add('fa-eye-slash');
+            toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
         } else {
             passwordInput.type = 'password';
-            toggleIcon.classList.remove('fa-eye-slash');
-            toggleIcon.classList.add('fa-eye');
+            toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
         }
     }
 
     async handleLogin() {
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const username = document.getElementById('username')?.value.trim();
+        const password = document.getElementById('password')?.value.trim();
 
         if (!username || !password) {
             this.showError('Username dan password harus diisi');
             return;
         }
 
-        // Optional: show loading
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
             loginBtn.disabled = true;
-            loginBtn.innerHTML = 'Memproses...';
+            loginBtn.textContent = 'Memproses...';
         }
 
         try {
-            // FIXED ENDPOINT → dari "/admin/login" menjadi "admin-login"
             const response = await Utils.apiCall('admin-login', {
                 method: 'POST',
                 body: JSON.stringify({ username, password })
@@ -76,23 +69,20 @@ class AdminLogin {
             if (response.success) {
                 Utils.setAdminSession(response.token, response.name);
                 Utils.showToast('Login berhasil!', 'success');
-
                 setTimeout(() => {
                     window.location.href = 'admin-dashboard.html';
                 }, 1000);
             } else {
                 this.showError(response.message || 'Login gagal');
             }
-
         } catch (error) {
             console.error('Login error:', error);
             this.showError('Terjadi kesalahan. Silakan coba lagi.');
-        }
-
-        // Reset loading
-        if (loginBtn) {
-            loginBtn.disabled = false;
-            loginBtn.innerHTML = 'Login';
+        } finally {
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
         }
     }
 
@@ -104,15 +94,15 @@ class AdminLogin {
             errorText.textContent = message;
             errorElement.classList.remove('hidden');
 
-            // Auto hide after 5 seconds
-            setTimeout(() => {
+            clearTimeout(this.errorTimeout);
+            this.errorTimeout = setTimeout(() => {
                 errorElement.classList.add('hidden');
             }, 5000);
         }
     }
 }
 
-// Initialize the admin login when DOM is loaded
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     new AdminLogin();
 });
