@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Produk - Toko Online</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .product-image {
+            transition: transform 0.3s ease;
+        }
+        .product-image:hover {
+            transform: scale(1.05);
+        }
+        .loading {
+            display: none;
+        }
+        .loading.active {
+            display: block;
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-store text-green-600 mr-2"></i>
+                    Toko Online
+                </h1>
+                <nav class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-600 hover:text-green-600">Katalog</a>
+                    <a href="track.html" class="text-gray-600 hover:text-green-600">Tracking</a>
+                    <a href="admin-login.html" class="text-gray-600 hover:text-green-600">
+                        <i class="fas fa-user-shield"></i> Admin
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading active">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="skeleton h-96 w-full"></div>
+                <div class="p-8">
+                    <div class="skeleton h-8 w-3/4 mb-4 rounded"></div>
+                    <div class="skeleton h-6 w-1/2 mb-4 rounded"></div>
+                    <div class="skeleton h-4 w-full mb-2 rounded"></div>
+                    <div class="skeleton h-4 w-full mb-2 rounded"></div>
+                    <div class="skeleton h-4 w-3/4 mb-6 rounded"></div>
+                    <div class="skeleton h-12 w-48 rounded"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Detail -->
+        <div id="productDetail" class="hidden">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="md:flex">
+                    <div class="md:w-1/2">
+                        <img id="productImage" src="" alt="" class="w-full h-96 object-cover product-image">
+                    </div>
+                    <div class="md:w-1/2 p-8">
+                        <h1 id="productName" class="text-3xl font-bold text-gray-800 mb-4"></h1>
+                        <div class="flex items-center mb-4">
+                            <span class="text-3xl font-bold text-green-600" id="productPrice"></span>
+                            <span class="ml-2 text-gray-500">/item</span>
+                        </div>
+                        <div class="mb-6">
+                            <span class="text-sm text-gray-600">Stok: </span>
+                            <span id="productStock" class="font-semibold"></span>
+                        </div>
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold mb-2">Deskripsi</h3>
+                            <p id="productDescription" class="text-gray-600"></p>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
+                            <div class="flex items-center space-x-4">
+                                <button id="decreaseQty" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" id="quantity" value="1" min="1" class="w-20 text-center border border-gray-300 rounded-lg py-2">
+                                <button id="increaseQty" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <div class="text-lg font-semibold">
+                                Total: <span id="totalPrice" class="text-green-600"></span>
+                            </div>
+                        </div>
+                        <button id="orderBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            Pesan Sekarang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden text-center py-12">
+            <i class="fas fa-exclamation-triangle text-6xl text-yellow-500 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">Produk tidak ditemukan</h3>
+            <p class="text-gray-500 mb-4">Produk yang Anda cari tidak tersedia</p>
+            <a href="index.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg">
+                Kembali ke Katalog
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Toko Online. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/product.js"></script>
+</body>
+</html>
