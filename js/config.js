@@ -1,21 +1,33 @@
 // Configuration file for the e-commerce website
 const CONFIG = {
-    // Google Apps Script URL - Ganti dengan URL Apps Script Anda setelah deploy
+
+    // ===============================
+    // 💾 API CONFIGURATION (Apps Script)
+    // ===============================
+    // URL Google Apps Script - ganti setelah deploy
     API_BASE_URL: 'https://script.google.com/macros/s/AKfycbwjNPRowheb0lZOXu8j0eygufVVB2pJPuYJMDANTXDCTbelOVB3m_pKk31sdj83SqAe/exec',
-    
-    // Website Configuration
+
+    // ===============================
+    // 🌐 SITE CONFIGURATION
+    // ===============================
     SITE_NAME: 'Toko Online',
     SITE_DESCRIPTION: 'Toko online terpercaya dengan produk berkualitas',
-    
-    // Currency Configuration
+
+    // ===============================
+    // 💵 CURRENCY CONFIGURATION
+    // ===============================
     CURRENCY: 'IDR',
     CURRENCY_SYMBOL: 'Rp',
-    
-    // Contact Information
+
+    // ===============================
+    // 📩 CONTACT INFORMATION
+    // ===============================
     ADMIN_EMAIL: 'admin@tokoonline.com',
     ADMIN_WHATSAPP: '628123456789',
-    
-    // Payment Configuration
+
+    // ===============================
+    // 💳 PAYMENT CONFIGURATION
+    // ===============================
     PAYMENT_METHODS: {
         QRIS: {
             name: 'QRIS',
@@ -37,8 +49,10 @@ const CONFIG = {
             description: 'Cash on Delivery - Bayar di tempat'
         }
     },
-    
-    // Order Status Configuration
+
+    // ===============================
+    // 📦 ORDER & PAYMENT STATUS
+    // ===============================
     ORDER_STATUS: {
         PENDING: 'Pending',
         PROCESSING: 'Diproses',
@@ -46,43 +60,45 @@ const CONFIG = {
         COMPLETED: 'Selesai',
         CANCELLED: 'Dibatalkan'
     },
-    
-    // Payment Status Configuration
+
     PAYMENT_STATUS: {
         PENDING: 'Pending',
         PAID: 'Dibayar',
         FAILED: 'Gagal',
         REFUNDED: 'Dikembalikan'
     },
-    
-    // Image Configuration
+
+    // ===============================
+    // 🖼 IMAGE CONFIGURATION
+    // ===============================
     DEFAULT_PRODUCT_IMAGE: 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=No+Image',
     MAX_IMAGE_SIZE: 5 * 1024 * 1024, // 5MB
     ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-    
-    // Pagination Configuration
+
+    // ===============================
+    // 🔢 PAGINATION
+    // ===============================
     PRODUCTS_PER_PAGE: 12,
-    
-    // Local Storage Keys
+
+    // ===============================
+    // 🗄 STORAGE KEYS
+    // ===============================
     STORAGE_KEYS: {
         ADMIN_TOKEN: 'admin_token',
         ADMIN_NAME: 'admin_name',
         CART: 'shopping_cart',
         RECENTLY_VIEWED: 'recently_viewed'
     },
-    
-    // Animation Duration (in milliseconds)
-    ANIMATION_DURATION: 300,
-    
-    // Toast Notification Configuration
-    TOAST_DURATION: 3000,
-    TOAST_POSITION: 'top-right'
+
+    // ===============================
+    // 🎞 UI / ANIMATION SETTINGS
+    // ===============================
+    ANIMATION_DURATION: 300,      // ms
+    TOAST_DURATION: 3000,        // ms
+    TOAST_POSITION: 'top-right'  // top-right, bottom-right, top-left, bottom-left
 };
 
-// Export for use in other files
+// Export for module-based environments
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CONFIG;
 }
-
-
-
