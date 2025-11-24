@@ -1,10 +1,11 @@
-// Configuration file for the e-commerce website
-const CONFIG = {
+// ===============================
+// CONFIGURATION FOR E-COMMERCE
+// ===============================
+window.CONFIG = {
 
     // ===============================
     // 💾 API CONFIGURATION (Apps Script)
     // ===============================
-    // URL Google Apps Script - ganti setelah deploy
     API_BASE_URL: 'https://script.google.com/macros/s/AKfycbwjNPRowheb0lZOXu8j0eygufVVB2pJPuYJMDANTXDCTbelOVB3m_pKk31sdj83SqAe/exec',
 
     // ===============================
@@ -94,11 +95,6 @@ const CONFIG = {
     // 🎞 UI / ANIMATION SETTINGS
     // ===============================
     ANIMATION_DURATION: 300,      // ms
-    TOAST_DURATION: 3000,        // ms
-    TOAST_POSITION: 'top-right'  // top-right, bottom-right, top-left, bottom-left
+    TOAST_DURATION: 3000,         // ms
+    TOAST_POSITION: 'top-right'   // top-right, bottom-right, top-left, bottom-left
 };
-
-// Export for module-based environments
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CONFIG;
-}
