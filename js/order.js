@@ -29,8 +29,7 @@ class OrderForm {
 
     setupEventListeners() {
         // Payment method selection
-        const paymentMethods = document.querySelectorAll('.payment-method');
-        paymentMethods.forEach(method => {
+        document.querySelectorAll('.payment-method').forEach(method => {
             method.addEventListener('click', () => {
                 this.selectPaymentMethod(method.dataset.method);
             });
@@ -66,7 +65,7 @@ class OrderForm {
         if (!this.orderData) return;
 
         const { product, quantity, totalPrice } = this.orderData;
-        
+
         document.getElementById('productImage').src = product.image || CONFIG.DEFAULT_PRODUCT_IMAGE;
         document.getElementById('productImage').alt = product.name;
         document.getElementById('productName').textContent = product.name;
@@ -78,51 +77,42 @@ class OrderForm {
     selectPaymentMethod(method) {
         this.selectedPaymentMethod = method;
 
-        // Update UI
-        const paymentMethods = document.querySelectorAll('.payment-method');
-        paymentMethods.forEach(m => {
-            m.classList.remove('selected');
-        });
-        
-        const selectedMethod = document.querySelector(`[data-method="${method}"]`);
-        if (selectedMethod) {
-            selectedMethod.classList.add('selected');
-        }
+        document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+        document.querySelector(`[data-method="${method}"]`)?.classList.add('selected');
 
-        // Show payment instructions
         this.showPaymentInstructions(method);
     }
 
     showPaymentInstructions(method) {
-        const instructionsContainer = document.getElementById('paymentInstructions');
         const proofSection = document.getElementById('paymentProofSection');
-        
-        // Hide all instructions
-        document.getElementById('qrisInstructions').classList.add('hidden');
-        document.getElementById('transferInstructions').classList.add('hidden');
-        document.getElementById('codInstructions').classList.add('hidden');
-        
-        // Show relevant instructions
+        const container = document.getElementById('paymentInstructions');
+
+        ['qrisInstructions', 'transferInstructions', 'codInstructions']
+            .forEach(id => document.getElementById(id).classList.add('hidden'));
+
         switch (method) {
             case 'qris':
                 document.getElementById('qrisInstructions').classList.remove('hidden');
-                document.getElementById('qrisAmount').textContent = Utils.formatCurrency(this.orderData.totalPrice);
+                document.getElementById('qrisAmount').textContent =
+                    Utils.formatCurrency(this.orderData.totalPrice);
                 proofSection.classList.remove('hidden');
                 break;
+
             case 'transfer':
                 document.getElementById('transferInstructions').classList.remove('hidden');
-                document.getElementById('transferAmount').textContent = Utils.formatCurrency(this.orderData.totalPrice);
+                document.getElementById('transferAmount').textContent =
+                    Utils.formatCurrency(this.orderData.totalPrice);
                 proofSection.classList.remove('hidden');
                 break;
+
             case 'cod':
                 document.getElementById('codInstructions').classList.remove('hidden');
-                document.getElementById('codAmount').textContent = Utils.formatCurrency(this.orderData.totalPrice);
                 proofSection.classList.add('hidden');
                 break;
         }
-        
-        instructionsContainer.classList.remove('hidden');
-        instructionsContainer.classList.add('fade-in');
+
+        container.classList.remove('hidden');
+        container.classList.add('fade-in');
     }
 
     async handlePaymentProofUpload(event) {
@@ -131,17 +121,15 @@ class OrderForm {
 
         try {
             Utils.validateImageFile(file);
-            
             const base64 = await Utils.convertImageToBase64(file);
             this.paymentProofImage = base64;
-            
-            // Show preview
-            const previewContainer = document.getElementById('previewContainer');
+
             const previewImage = document.getElementById('previewImage');
-            
+            const previewContainer = document.getElementById('previewContainer');
+
             previewImage.src = base64;
             previewContainer.classList.remove('hidden');
-            
+
         } catch (error) {
             Utils.showToast(error.message, 'error');
             event.target.value = '';
@@ -150,88 +138,67 @@ class OrderForm {
 
     removePaymentProof() {
         this.paymentProofImage = null;
-        
-        const previewContainer = document.getElementById('previewContainer');
-        const paymentProofInput = document.getElementById('paymentProof');
-        
-        previewContainer.classList.add('hidden');
-        paymentProofInput.value = '';
+        document.getElementById('previewContainer').classList.add('hidden');
+        document.getElementById('paymentProof').value = '';
     }
 
     validateForm() {
-        const customerName = document.getElementById('customerName').value.trim();
-        const customerPhone = document.getElementById('customerPhone').value.trim();
+        const name = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
 
-        if (!customerName) {
-            Utils.showToast('Nama lengkap harus diisi', 'error');
-            return false;
-        }
+        if (!name) return Utils.showToast('Nama lengkap harus diisi', 'error'), false;
+        if (!phone) return Utils.showToast('Nomor WhatsApp harus diisi', 'error'), false;
+        if (!Utils.validatePhoneNumber(phone))
+            return Utils.showToast('Nomor WhatsApp tidak valid', 'error'), false;
 
-        if (!customerPhone) {
-            Utils.showToast('Nomor WhatsApp harus diisi', 'error');
-            return false;
-        }
+        if (!this.selectedPaymentMethod)
+            return Utils.showToast('Pilih metode pembayaran', 'error'), false;
 
-        if (!Utils.validatePhoneNumber(customerPhone)) {
-            Utils.showToast('Nomor WhatsApp tidak valid', 'error');
-            return false;
-        }
-
-        if (!this.selectedPaymentMethod) {
-            Utils.showToast('Pilih metode pembayaran', 'error');
-            return false;
-        }
-
-        if (this.selectedPaymentMethod !== 'cod' && !this.paymentProofImage) {
-            Utils.showToast('Upload bukti pembayaran', 'error');
-            return false;
-        }
+        if (this.selectedPaymentMethod !== 'cod' && !this.paymentProofImage)
+            return Utils.showToast('Upload bukti pembayaran', 'error'), false;
 
         return true;
     }
 
     async submitOrder() {
-        if (!this.validateForm()) {
-            return;
-        }
+        if (!this.validateForm()) return;
 
         try {
             Utils.showLoading(document.getElementById('loadingOverlay'));
 
-            const orderData = {
-                order_id: Utils.generateOrderId(),
+            const orderId = Utils.generateOrderId();
+
+            const payload = {
+                action: 'createOrder',
+                order_id: orderId,
                 date: new Date().toISOString(),
-                name: document.getElementById('customerName').value.trim(),
+                customer_name: document.getElementById('customerName').value.trim(),
                 phone: document.getElementById('customerPhone').value.trim(),
                 product_id: this.orderData.product.id,
                 qty: this.orderData.quantity,
                 note: document.getElementById('customerNote').value.trim(),
+                total_price: this.orderData.totalPrice,
                 payment_method: this.selectedPaymentMethod,
                 payment_status: this.selectedPaymentMethod === 'cod' ? 'Pending' : 'Pending',
                 payment_proof: this.paymentProofImage || '',
                 order_status: 'Pending',
-                tracking_link: ''
+                tracking_link: Utils.generateTrackingLink(orderId)
             };
 
-            const response = await Utils.apiCall('/order', {
+            const response = await Utils.apiCall('?action=createOrder', {
                 method: 'POST',
-                body: JSON.stringify(orderData)
+                body: JSON.stringify(payload)
             });
 
             Utils.hideLoading(document.getElementById('loadingOverlay'));
 
             if (response.success) {
-                // Store order details for success page
                 sessionStorage.setItem('orderDetails', JSON.stringify({
-                    ...orderData,
-                    product_name: this.orderData.product.name,
-                    total_price: this.orderData.totalPrice
+                    ...payload,
+                    product_name: this.orderData.product.name
                 }));
 
-                // Clear order data
                 sessionStorage.removeItem('orderData');
-
-                // Redirect to success page
                 window.location.href = 'success.html';
             } else {
                 Utils.showToast(response.message || 'Gagal membuat pesanan', 'error');
