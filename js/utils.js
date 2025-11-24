@@ -4,17 +4,14 @@
 class Utils {
 
     // ===============================
-    // API CALL
+    // API CALL (perbaikan untuk GAS & CORS)
     // ===============================
     static async apiCall(path, options = {}) {
         if (!window.CONFIG) throw new Error("CONFIG is not defined");
 
-        let url = '';
-        if (path.startsWith('?') || path.startsWith('/')) {
-            url = `${window.CONFIG.API_BASE_URL}${path}`;
-        } else {
-            url = `${window.CONFIG.API_BASE_URL}?path=${path}`;
-        }
+        // Pastikan path GAS
+        const url = new URL(window.CONFIG.API_BASE_URL);
+        url.searchParams.set('path', path);
 
         const defaultOptions = {
             method: 'GET',
@@ -25,14 +22,20 @@ class Utils {
 
         const finalOptions = { ...defaultOptions, ...options };
 
+        // POST body
         if (finalOptions.method.toUpperCase() === 'POST' && finalOptions.body && typeof finalOptions.body !== 'string') {
             finalOptions.body = JSON.stringify(finalOptions.body);
         }
 
         try {
             const response = await fetch(url, finalOptions);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
+            const result = await response.json();
+
+            if (!result.success) throw new Error(result.message || 'API error');
+
+            // Supaya kompatibel dengan ProductCatalog
+            if (path === 'products') return result.products || [];
+            return result;
         } catch (error) {
             console.error("API call failed:", error);
             throw error;
@@ -63,7 +66,7 @@ class Utils {
     static deleteProduct(data) { return this.apiCall('admin/delete-product', { method: 'POST', body: data }); }
 
     // ===============================
-    // HELPER FUNCTIONS
+    // HELPERS
     // ===============================
     static formatCurrency(amount) {
         return new Intl.NumberFormat('id-ID', {
@@ -103,8 +106,6 @@ class Utils {
     }
 
     static showToast(message, type = 'success') {
-        if (!window.CONFIG) throw new Error("CONFIG is not defined");
-
         const toast = document.createElement('div');
         toast.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 flex items-center space-x-2 ${
             type === 'success' ? 'bg-green-500 text-white' :
@@ -126,7 +127,7 @@ class Utils {
             toast.style.transform = 'translateX(100%)';
             toast.style.opacity = '0';
             setTimeout(() => document.body.removeChild(toast), 300);
-        }, window.CONFIG.TOAST_DURATION);
+        }, window.CONFIG.TOAST_DURATION || 3000);
     }
 
     static showLoading(element) { if (element) element.classList.add('loading', 'active'); }
@@ -143,70 +144,6 @@ class Utils {
         };
     }
 
-    static convertImageToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    static validateImageFile(file) {
-        if (!window.CONFIG.ALLOWED_IMAGE_TYPES.includes(file.type)) throw new Error('Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WebP.');
-        if (file.size > window.CONFIG.MAX_IMAGE_SIZE) throw new Error('Ukuran file terlalu besar. Maksimal 5MB.');
-        return true;
-    }
-
-    static getStatusBadge(status, type = 'order') {
-        const statusConfig = type === 'payment' ?
-            { 'Pending':'bg-yellow-100 text-yellow-800','Dibayar':'bg-green-100 text-green-800','Gagal':'bg-red-100 text-red-800','Dikembalikan':'bg-gray-100 text-gray-800' } :
-            { 'Pending':'bg-yellow-100 text-yellow-800','Diproses':'bg-blue-100 text-blue-800','Dikirim':'bg-purple-100 text-purple-800','Selesai':'bg-green-100 text-green-800','Dibatalkan':'bg-red-100 text-red-800' };
-        const className = statusConfig[status] || 'bg-gray-100 text-gray-800';
-        return `<span class="px-2 py-1 text-xs font-medium rounded-full ${className}">${status}</span>`;
-    }
-
-    static async copyToClipboard(text) {
-        try { await navigator.clipboard.writeText(text); return true; }
-        catch (err) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            return true;
-        }
-    }
-
-    static isAdminLoggedIn() {
-        const token = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN);
-        const name = localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME);
-        return !!(token && name);
-    }
-
-    static getAdminInfo() {
-        return { token: localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN), name: localStorage.getItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME) };
-    }
-
-    static setAdminSession(token, name) {
-        localStorage.setItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN, token);
-        localStorage.setItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME, name);
-    }
-
-    static clearAdminSession() {
-        localStorage.removeItem(window.CONFIG.STORAGE_KEYS.ADMIN_TOKEN);
-        localStorage.removeItem(window.CONFIG.STORAGE_KEYS.ADMIN_NAME);
-    }
-
-    static requireAdmin() {
-        if (!this.isAdminLoggedIn()) {
-            window.location.href = 'admin-login.html';
-            return false;
-        }
-        return true;
-    }
-
     static sanitizeHtml(html) {
         const div = document.createElement('div');
         div.textContent = html;
@@ -214,9 +151,6 @@ class Utils {
     }
 
     static truncateText(text, maxLength) { return text.length <= maxLength ? text : text.substr(0, maxLength) + '...'; }
-    static scrollToTop() { window.scrollTo({ top:0, behavior:'smooth' }); }
-    static isInViewport(element) { const rect = element.getBoundingClientRect(); return rect.top>=0 && rect.left>=0 && rect.bottom<=(window.innerHeight||document.documentElement.clientHeight) && rect.right<=(window.innerWidth||document.documentElement.clientWidth); }
-
 }
 
 // Export untuk Node.js (opsional)
