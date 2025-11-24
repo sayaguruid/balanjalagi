@@ -19,7 +19,6 @@ class AdminDashboard {
     }
 
     setupEventListeners() {
-        // Tab switching
         const tabButtons = document.querySelectorAll('.tab-btn');
         tabButtons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -27,15 +26,11 @@ class AdminDashboard {
             });
         });
 
-        // Logout
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                this.handleLogout();
-            });
+            logoutBtn.addEventListener('click', () => this.handleLogout());
         }
 
-        // Search and filter
         const searchOrder = document.getElementById('searchOrder');
         if (searchOrder) {
             searchOrder.addEventListener('input', Utils.debounce(() => {
@@ -45,34 +40,24 @@ class AdminDashboard {
 
         const filterStatus = document.getElementById('filterStatus');
         if (filterStatus) {
-            filterStatus.addEventListener('change', () => {
-                this.filterOrders();
-            });
+            filterStatus.addEventListener('change', () => this.filterOrders());
         }
 
-        // Product modal
         const addProductBtn = document.getElementById('addProductBtn');
         if (addProductBtn) {
-            addProductBtn.addEventListener('click', () => {
-                this.showProductModal();
-            });
+            addProductBtn.addEventListener('click', () => this.showProductModal());
         }
 
         const closeProductModal = document.getElementById('closeProductModal');
         if (closeProductModal) {
-            closeProductModal.addEventListener('click', () => {
-                this.hideProductModal();
-            });
+            closeProductModal.addEventListener('click', () => this.hideProductModal());
         }
 
         const cancelProductBtn = document.getElementById('cancelProductBtn');
         if (cancelProductBtn) {
-            cancelProductBtn.addEventListener('click', () => {
-                this.hideProductModal();
-            });
+            cancelProductBtn.addEventListener('click', () => this.hideProductModal());
         }
 
-        // Product form
         const productForm = document.getElementById('productForm');
         if (productForm) {
             productForm.addEventListener('submit', (e) => {
@@ -81,12 +66,9 @@ class AdminDashboard {
             });
         }
 
-        // Order modal
         const closeOrderModal = document.getElementById('closeOrderModal');
         if (closeOrderModal) {
-            closeOrderModal.addEventListener('click', () => {
-                this.hideOrderModal();
-            });
+            closeOrderModal.addEventListener('click', () => this.hideOrderModal());
         }
     }
 
@@ -97,9 +79,13 @@ class AdminDashboard {
         }
     }
 
+    // ===========================
+    // FIXED API CALLS FOR APPS SCRIPT
+    // ===========================
+
     async loadOrders() {
         try {
-            const response = await Utils.apiCall('/admin/orders');
+            const response = await Utils.apiCall('admin-orders');
             this.orders = response.orders || [];
             this.renderOrders();
             this.renderStats();
@@ -111,7 +97,7 @@ class AdminDashboard {
 
     async loadProducts() {
         try {
-            const response = await Utils.apiCall('/products');
+            const response = await Utils.apiCall('products');
             this.products = response.products || [];
             this.renderProducts();
         } catch (error) {
@@ -120,10 +106,106 @@ class AdminDashboard {
         }
     }
 
+    async viewOrder(orderId) {
+        try {
+            const response = await Utils.apiCall(`admin-order&id=${orderId}`);
+            if (response.success) {
+                this.showOrderModal(response.order);
+            }
+        } catch (error) {
+            console.error('Error viewing order:', error);
+            Utils.showToast('Gagal memuat detail pesanan', 'error');
+        }
+    }
+
+    async saveOrderStatus(orderId) {
+        const paymentStatus = document.getElementById('updatePaymentStatus').value;
+        const orderStatus = document.getElementById('updateOrderStatus').value;
+
+        try {
+            const response = await Utils.apiCall('update-order-status', {
+                method: 'POST',
+                body: JSON.stringify({
+                    order_id: orderId,
+                    payment_status: paymentStatus,
+                    order_status: orderStatus
+                })
+            });
+
+            if (response.success) {
+                Utils.showToast('Status berhasil diperbarui', 'success');
+                this.hideOrderModal();
+                this.loadOrders();
+            } else {
+                Utils.showToast(response.message || 'Gagal memperbarui status', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            Utils.showToast('Terjadi kesalahan', 'error');
+        }
+    }
+
+    async deleteProduct(productId) {
+        if (!confirm('Apakah Anda yakin ingin menghapus produk ini?')) return;
+
+        try {
+            const response = await Utils.apiCall('delete-product', {
+                method: 'POST',
+                body: JSON.stringify({ product_id: productId })
+            });
+
+            if (response.success) {
+                Utils.showToast('Produk berhasil dihapus', 'success');
+                this.loadProducts();
+            } else {
+                Utils.showToast(response.message || 'Gagal menghapus produk', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            Utils.showToast('Terjadi kesalahan', 'error');
+        }
+    }
+
+    async saveProduct() {
+        const productId = document.getElementById('productId').value;
+
+        const productData = {
+            name: document.getElementById('productName').value,
+            price: parseFloat(document.getElementById('productPrice').value),
+            stock: parseInt(document.getElementById('productStock').value),
+            image: document.getElementById('productImage').value,
+            description: document.getElementById('productDescription').value
+        };
+
+        try {
+            const endpoint = productId ? 'edit-product' : 'create-product';
+            const body = productId ? { product_id: productId, ...productData } : productData;
+
+            const response = await Utils.apiCall(endpoint, {
+                method: 'POST',
+                body: JSON.stringify(body)
+            });
+
+            if (response.success) {
+                Utils.showToast(productId ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan', 'success');
+                this.hideProductModal();
+                this.loadProducts();
+            } else {
+                Utils.showToast(response.message || 'Gagal menyimpan produk', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving product:', error);
+            Utils.showToast('Terjadi kesalahan', 'error');
+        }
+    }
+
+    // ===========================
+    // UI LOGIC (tidak diubah)
+    // ===========================
+
     switchTab(tab) {
         this.currentTab = tab;
 
-        // Update tab buttons
         const tabButtons = document.querySelectorAll('.tab-btn');
         tabButtons.forEach(btn => {
             if (btn.dataset.tab === tab) {
@@ -135,7 +217,6 @@ class AdminDashboard {
             }
         });
 
-        // Update tab content
         document.getElementById('ordersTab').classList.toggle('hidden', tab !== 'orders');
         document.getElementById('productsTab').classList.toggle('hidden', tab !== 'products');
     }
@@ -153,7 +234,6 @@ class AdminDashboard {
         emptyState.classList.add('hidden');
         tbody.innerHTML = this.orders.map(order => this.createOrderRow(order)).join('');
 
-        // Add event listeners
         this.attachOrderRowListeners();
     }
 
@@ -182,12 +262,8 @@ class AdminDashboard {
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
                     ${Utils.formatCurrency(order.total_price || 0)}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    ${paymentStatusBadge}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    ${orderStatusBadge}
-                </td>
+                <td class="px-6 py-4 whitespace-nowrap">${paymentStatusBadge}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${orderStatusBadge}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <button onclick="adminDashboard.viewOrder('${order.order_id}')" class="text-blue-600 hover:text-blue-900 mr-2">
                         <i class="fas fa-eye"></i>
@@ -200,9 +276,7 @@ class AdminDashboard {
         `;
     }
 
-    attachOrderRowListeners() {
-        // Event listeners are attached via onclick attributes in the HTML
-    }
+    attachOrderRowListeners() {}
 
     renderProducts() {
         const tbody = document.getElementById('productsTableBody');
@@ -257,39 +331,6 @@ class AdminDashboard {
         document.getElementById('completedOrders').textContent = completedOrders;
     }
 
-    filterOrders() {
-        const searchTerm = document.getElementById('searchOrder').value.toLowerCase();
-        const statusFilter = document.getElementById('filterStatus').value;
-
-        const filteredOrders = this.orders.filter(order => {
-            const matchesSearch = order.order_id.toLowerCase().includes(searchTerm) ||
-                                 order.name.toLowerCase().includes(searchTerm);
-            const matchesStatus = !statusFilter || order.order_status === statusFilter;
-            
-            return matchesSearch && matchesStatus;
-        });
-
-        const tbody = document.getElementById('ordersTableBody');
-        if (filteredOrders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">Tidak ada pesanan yang cocok</td></tr>';
-        } else {
-            tbody.innerHTML = filteredOrders.map(order => this.createOrderRow(order)).join('');
-            this.attachOrderRowListeners();
-        }
-    }
-
-    async viewOrder(orderId) {
-        try {
-            const response = await Utils.apiCall(`/admin/order?id=${orderId}`);
-            if (response.success) {
-                this.showOrderModal(response.order);
-            }
-        } catch (error) {
-            console.error('Error viewing order:', error);
-            Utils.showToast('Gagal memuat detail pesanan', 'error');
-        }
-    }
-
     showOrderModal(order) {
         const modal = document.getElementById('orderModal');
         const modalBody = document.getElementById('orderModalBody');
@@ -309,7 +350,7 @@ class AdminDashboard {
                         </div>
                     </div>
                 </div>
-                
+
                 <div>
                     <h4 class="font-semibold mb-2">Pelanggan</h4>
                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -323,7 +364,7 @@ class AdminDashboard {
                         </div>
                     </div>
                 </div>
-                
+
                 <div>
                     <h4 class="font-semibold mb-2">Pesanan</h4>
                     <div class="text-sm">
@@ -341,7 +382,7 @@ class AdminDashboard {
                         </div>
                     </div>
                 </div>
-                
+
                 <div>
                     <h4 class="font-semibold mb-2">Status</h4>
                     <div class="space-y-2">
@@ -355,14 +396,14 @@ class AdminDashboard {
                         </div>
                     </div>
                 </div>
-                
+
                 ${order.payment_proof ? `
-                <div>
-                    <h4 class="font-semibold mb-2">Bukti Pembayaran</h4>
-                    <img src="${order.payment_proof}" alt="Bukti Pembayaran" class="max-h-48 rounded">
-                </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Bukti Pembayaran</h4>
+                        <img src="${order.payment_proof}" alt="Bukti Pembayaran" class="max-h-48 rounded">
+                    </div>
                 ` : ''}
-                
+
                 <div>
                     <h4 class="font-semibold mb-2">Update Status</h4>
                     <div class="grid grid-cols-2 gap-4">
@@ -384,7 +425,9 @@ class AdminDashboard {
                             </select>
                         </div>
                     </div>
-                    <button onclick="adminDashboard.saveOrderStatus('${order.order_id}')" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+
+                    <button onclick="adminDashboard.saveOrderStatus('${order.order_id}')"
+                        class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
                         Simpan Status
                     </button>
                 </div>
@@ -396,37 +439,6 @@ class AdminDashboard {
 
     hideOrderModal() {
         document.getElementById('orderModal').classList.remove('active');
-    }
-
-    async saveOrderStatus(orderId) {
-        const paymentStatus = document.getElementById('updatePaymentStatus').value;
-        const orderStatus = document.getElementById('updateOrderStatus').value;
-
-        try {
-            const response = await Utils.apiCall('/admin/update-order-status', {
-                method: 'POST',
-                body: JSON.stringify({
-                    order_id: orderId,
-                    payment_status: paymentStatus,
-                    order_status: orderStatus
-                })
-            });
-
-            if (response.success) {
-                Utils.showToast('Status berhasil diperbarui', 'success');
-                this.hideOrderModal();
-                this.loadOrders();
-            } else {
-                Utils.showToast(response.message || 'Gagal memperbarui status', 'error');
-            }
-        } catch (error) {
-            console.error('Error updating order status:', error);
-            Utils.showToast('Terjadi kesalahan', 'error');
-        }
-    }
-
-    updateOrderStatus(orderId) {
-        this.viewOrder(orderId);
     }
 
     showProductModal(product = null) {
@@ -462,61 +474,6 @@ class AdminDashboard {
         }
     }
 
-    async deleteProduct(productId) {
-        if (!confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-            return;
-        }
-
-        try {
-            const response = await Utils.apiCall('/admin/delete-product', {
-                method: 'POST',
-                body: JSON.stringify({ product_id: productId })
-            });
-
-            if (response.success) {
-                Utils.showToast('Produk berhasil dihapus', 'success');
-                this.loadProducts();
-            } else {
-                Utils.showToast(response.message || 'Gagal menghapus produk', 'error');
-            }
-        } catch (error) {
-            console.error('Error deleting product:', error);
-            Utils.showToast('Terjadi kesalahan', 'error');
-        }
-    }
-
-    async saveProduct() {
-        const productId = document.getElementById('productId').value;
-        const productData = {
-            name: document.getElementById('productName').value,
-            price: parseFloat(document.getElementById('productPrice').value),
-            stock: parseInt(document.getElementById('productStock').value),
-            image: document.getElementById('productImage').value,
-            description: document.getElementById('productDescription').value
-        };
-
-        try {
-            const endpoint = productId ? '/admin/edit-product' : '/admin/create-product';
-            const body = productId ? { product_id: productId, ...productData } : productData;
-
-            const response = await Utils.apiCall(endpoint, {
-                method: 'POST',
-                body: JSON.stringify(body)
-            });
-
-            if (response.success) {
-                Utils.showToast(productId ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan', 'success');
-                this.hideProductModal();
-                this.loadProducts();
-            } else {
-                Utils.showToast(response.message || 'Gagal menyimpan produk', 'error');
-            }
-        } catch (error) {
-            console.error('Error saving product:', error);
-            Utils.showToast('Terjadi kesalahan', 'error');
-        }
-    }
-
     handleLogout() {
         if (confirm('Apakah Anda yakin ingin logout?')) {
             Utils.clearAdminSession();
@@ -528,10 +485,9 @@ class AdminDashboard {
     }
 }
 
-// Global instance for onclick handlers
+// Global instance
 let adminDashboard;
 
-// Initialize the admin dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     adminDashboard = new AdminDashboard();
 });
