@@ -1,363 +1,260 @@
 // admin-dashboard.js
-class AdminDashboard {
-    constructor() {
-        this.orders = [];
-        this.filteredOrders = [];
-        this.products = [];
-        this.currentTab = 'orders';
-        this.init();
-    }
 
-    async init() {
-        if (!Utils.requireAdmin()) return;
+document.addEventListener('DOMContentLoaded', async () => {
+    const adminNameEl = document.getElementById('adminName');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const ordersTableBody = document.getElementById('ordersTableBody');
+    const emptyOrders = document.getElementById('emptyOrders');
+    const productsTableBody = document.getElementById('productsTableBody');
 
-        this.setupEventListeners();
-        this.loadAdminInfo();
-        await this.loadOrders();
-        await this.loadProducts();
-        this.renderStats();
-    }
+    const searchOrderInput = document.getElementById('searchOrder');
+    const filterStatusSelect = document.getElementById('filterStatus');
 
-    setupEventListeners() {
-        // Tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+    const orderModal = document.getElementById('orderModal');
+    const orderModalBody = document.getElementById('orderModalBody');
+    const closeOrderModalBtn = document.getElementById('closeOrderModal');
+
+    const productModal = document.getElementById('productModal');
+    const productModalTitle = document.getElementById('productModalTitle');
+    const closeProductModalBtn = document.getElementById('closeProductModal');
+    const productForm = document.getElementById('productForm');
+    const cancelProductBtn = document.getElementById('cancelProductBtn');
+
+    const addProductBtn = document.getElementById('addProductBtn');
+
+    // === Utility Variables ===
+    let orders = [];
+    let products = [];
+    let editingProduct = null;
+
+    // === Tab Switching ===
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabButtons.forEach(b => b.classList.replace('border-green-500', 'border-transparent'));
+            tabButtons.forEach(b => b.classList.replace('text-green-600', 'text-gray-600'));
+            btn.classList.replace('border-transparent', 'border-green-500');
+            btn.classList.replace('text-gray-600', 'text-green-600');
+
+            const target = btn.dataset.tab;
+            tabContents.forEach(tc => tc.classList.add('hidden'));
+            document.getElementById(target + 'Tab').classList.remove('hidden');
         });
+    });
 
-        // Logout
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) logoutBtn.addEventListener('click', () => this.handleLogout());
+    // === Logout ===
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('adminToken');
+        window.location.href = 'admin-login.html';
+    });
 
-        // Search & filter orders
-        const searchOrder = document.getElementById('searchOrder');
-        const filterStatus = document.getElementById('filterStatus');
-        if (searchOrder) searchOrder.addEventListener('input', Utils.debounce(() => this.filterOrders(), 300));
-        if (filterStatus) filterStatus.addEventListener('change', () => this.filterOrders());
-
-        // Product modal buttons
-        const addProductBtn = document.getElementById('addProductBtn');
-        const closeProductModal = document.getElementById('closeProductModal');
-        const cancelProductBtn = document.getElementById('cancelProductBtn');
-        if (addProductBtn) addProductBtn.addEventListener('click', () => this.showProductModal());
-        if (closeProductModal) closeProductModal.addEventListener('click', () => this.hideProductModal());
-        if (cancelProductBtn) cancelProductBtn.addEventListener('click', () => this.hideProductModal());
-
-        // Product form submit
-        const productForm = document.getElementById('productForm');
-        if (productForm) productForm.addEventListener('submit', e => {
-            e.preventDefault();
-            this.saveProduct();
-        });
-
-        // Close order modal
-        const closeOrderModal = document.getElementById('closeOrderModal');
-        if (closeOrderModal) closeOrderModal.addEventListener('click', () => this.hideOrderModal());
-
-        // Close modals when clicking outside
-        const productModal = document.getElementById('productModal');
-        if (productModal) productModal.addEventListener('click', (e) => {
-            if (e.target === productModal) this.hideProductModal();
-        });
-        const orderModal = document.getElementById('orderModal');
-        if (orderModal) orderModal.addEventListener('click', (e) => {
-            if (e.target === orderModal) this.hideOrderModal();
-        });
+    // === Load Admin Info ===
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+        window.location.href = 'admin-login.html';
+        return;
     }
+    adminNameEl.textContent = 'Admin'; // bisa ambil dari token decoded jika ada
 
-    loadAdminInfo() {
-        const adminInfo = Utils.getAdminInfo();
-        if (adminInfo.name) document.getElementById('adminName').textContent = adminInfo.name;
-    }
-
-    // ===========================
-    // API CALLS
-    // ===========================
-
-    async loadOrders() {
+    // === Load Orders & Stats ===
+    async function loadOrders() {
         try {
-            const response = await Utils.getOrders();
-            this.orders = response || [];
-            this.filteredOrders = [...this.orders];
-            this.renderOrders();
-            this.renderStats();
-        } catch (error) {
-            console.error('Error loading orders:', error);
+            Utils.showLoading(document.body);
+            orders = await Utils.getOrders();
+            renderOrdersTable(orders);
+            renderOrderStats(orders);
+        } catch (err) {
             Utils.showToast('Gagal memuat pesanan', 'error');
+            console.error(err);
+        } finally {
+            Utils.hideLoading(document.body);
         }
     }
 
-    async loadProducts() {
-        try {
-            const response = await Utils.getProducts();
-            this.products = response || [];
-            this.renderProducts();
-        } catch (error) {
-            console.error('Error loading products:', error);
-            Utils.showToast('Gagal memuat produk', 'error');
-        }
-    }
-
-    async viewOrder(orderId) {
-        try {
-            const response = await Utils.getOrder(orderId);
-            if (response) this.showOrderModal(response);
-        } catch (error) {
-            console.error('Error viewing order:', error);
-            Utils.showToast('Gagal memuat detail pesanan', 'error');
-        }
-    }
-
-    async saveOrderStatus(orderId) {
-        const paymentStatus = document.getElementById('updatePaymentStatus').value;
-        const orderStatus = document.getElementById('updateOrderStatus').value;
-
-        try {
-            const response = await Utils.updateOrderStatus({
-                order_id: orderId,
-                payment_status: paymentStatus,
-                order_status: orderStatus
-            });
-
-            if (response.success) {
-                Utils.showToast('Status berhasil diperbarui', 'success');
-                this.hideOrderModal();
-                await this.loadOrders();
-            } else {
-                Utils.showToast(response.message || 'Gagal memperbarui status', 'error');
-            }
-        } catch (error) {
-            console.error('Error updating order status:', error);
-            Utils.showToast('Terjadi kesalahan', 'error');
-        }
-    }
-
-    async deleteProduct(productId) {
-        if (!confirm('Apakah Anda yakin ingin menghapus produk ini?')) return;
-
-        try {
-            const response = await Utils.deleteProduct({ product_id: productId });
-            if (response.success) {
-                Utils.showToast('Produk berhasil dihapus', 'success');
-                await this.loadProducts();
-            } else {
-                Utils.showToast(response.message || 'Gagal menghapus produk', 'error');
-            }
-        } catch (error) {
-            console.error('Error deleting product:', error);
-            Utils.showToast('Terjadi kesalahan', 'error');
-        }
-    }
-
-    async saveProduct() {
-        const productId = document.getElementById('productId').value;
-        const productData = {
-            name: document.getElementById('productName').value,
-            price: parseFloat(document.getElementById('productPrice').value),
-            stock: parseInt(document.getElementById('productStock').value),
-            image: document.getElementById('productImage').value,
-            description: document.getElementById('productDescription').value
-        };
-
-        try {
-            const response = productId
-                ? await Utils.editProduct({ product_id: productId, ...productData })
-                : await Utils.createProduct(productData);
-
-            if (response.success) {
-                Utils.showToast(productId ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan', 'success');
-                this.hideProductModal();
-                await this.loadProducts();
-            } else {
-                Utils.showToast(response.message || 'Gagal menyimpan produk', 'error');
-            }
-        } catch (error) {
-            console.error('Error saving product:', error);
-            Utils.showToast('Terjadi kesalahan', 'error');
-        }
-    }
-
-    // ===========================
-    // SEARCH & FILTER ORDERS
-    // ===========================
-    filterOrders() {
-        const query = (document.getElementById('searchOrder')?.value || '').toLowerCase();
-        const status = document.getElementById('filterStatus')?.value || 'all';
-
-        this.filteredOrders = this.orders.filter(order => {
-            const matchesQuery = order.order_id.toLowerCase().includes(query) || order.name.toLowerCase().includes(query);
-            const matchesStatus = status === 'all' || order.order_status === status;
-            return matchesQuery && matchesStatus;
-        });
-
-        this.renderOrders(this.filteredOrders);
-    }
-
-    // ===========================
-    // RENDERING
-    // ===========================
-    renderOrders(orders = this.filteredOrders) {
-        const tbody = document.getElementById('ordersTableBody');
-        const emptyState = document.getElementById('emptyOrders');
-
-        if (!orders.length) {
-            tbody.innerHTML = '';
-            emptyState.classList.remove('hidden');
+    function renderOrdersTable(list) {
+        ordersTableBody.innerHTML = '';
+        if (list.length === 0) {
+            emptyOrders.classList.remove('hidden');
             return;
+        } else {
+            emptyOrders.classList.add('hidden');
         }
 
-        emptyState.classList.add('hidden');
-        tbody.innerHTML = orders.map(order => this.createOrderRow(order)).join('');
+        list.forEach(order => {
+            const tr = document.createElement('tr');
+            tr.className = 'order-row';
 
-        // Attach event listeners
-        tbody.querySelectorAll('.view-order-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.viewOrder(btn.dataset.id));
-        });
-        tbody.querySelectorAll('.update-order-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.saveOrderStatus(btn.dataset.id));
-        });
-    }
+            const statusColor = {
+                pending: 'bg-yellow-100 text-yellow-600',
+                diproses: 'bg-blue-100 text-blue-600',
+                dikirim: 'bg-indigo-100 text-indigo-600',
+                selesai: 'bg-green-100 text-green-600'
+            }[order.status] || 'bg-gray-100 text-gray-600';
 
-    createOrderRow(order) {
-        const paymentStatusBadge = Utils.getStatusBadge(order.payment_status, 'payment');
-        const orderStatusBadge = Utils.getStatusBadge(order.order_status, 'order');
-
-        return `
-            <tr class="order-row">
-                <td class="px-6 py-4 whitespace-nowrap">${order.order_id}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${Utils.formatDate(order.date)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">${order.name}<br>${order.phone}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">${order.product_name || 'Produk'}<br>Qty: ${order.qty}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-green-600">${Utils.formatCurrency(order.total_price || 0)}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${paymentStatusBadge}</td>
-                <td class="px-6 py-4 whitespace-nowrap">${orderStatusBadge}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <button class="view-order-btn text-blue-600 hover:text-blue-900 mr-2" data-id="${order.order_id}">
+            tr.innerHTML = `
+                <td class="px-6 py-4 font-mono">${order.id}</td>
+                <td class="px-6 py-4">${Utils.formatDate(order.date)}</td>
+                <td class="px-6 py-4">${Utils.sanitizeHtml(order.customerName)}</td>
+                <td class="px-6 py-4">${order.items.map(i => i.name).join(', ')}</td>
+                <td class="px-6 py-4">${Utils.formatCurrency(order.total)}</td>
+                <td class="px-6 py-4">${order.paymentStatus || '-'}</td>
+                <td class="px-6 py-4"><span class="status-badge px-2 py-1 rounded ${statusColor}">${order.status}</span></td>
+                <td class="px-6 py-4">
+                    <button class="view-order-btn bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded" data-id="${order.id}">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="update-order-btn text-green-600 hover:text-green-900" data-id="${order.order_id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
                 </td>
-            </tr>
-        `;
-    }
-
-    renderProducts() {
-        const tbody = document.getElementById('productsTableBody');
-        if (!this.products.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Belum ada produk</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = this.products.map(p => this.createProductRow(p)).join('');
-
-        // Attach edit/delete buttons
-        tbody.querySelectorAll('.edit-product-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.editProduct(btn.dataset.id));
+            `;
+            ordersTableBody.appendChild(tr);
         });
-        tbody.querySelectorAll('.delete-product-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.deleteProduct(btn.dataset.id));
+
+        // Detail Order Modal
+        document.querySelectorAll('.view-order-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                const order = orders.find(o => o.id === id);
+                if (!order) return;
+                orderModalBody.innerHTML = `
+                    <p><strong>Order ID:</strong> ${order.id}</p>
+                    <p><strong>Tanggal:</strong> ${Utils.formatDate(order.date)}</p>
+                    <p><strong>Pelanggan:</strong> ${Utils.sanitizeHtml(order.customerName)}</p>
+                    <p><strong>Alamat:</strong> ${Utils.sanitizeHtml(order.address)}</p>
+                    <p><strong>Total:</strong> ${Utils.formatCurrency(order.total)}</p>
+                    <p><strong>Status:</strong> ${order.status}</p>
+                    <h4 class="mt-4 font-semibold">Produk:</h4>
+                    <ul>${order.items.map(i => `<li>${i.name} x ${i.qty}</li>`).join('')}</ul>
+                `;
+                orderModal.classList.add('active');
+            });
         });
     }
 
-    createProductRow(product) {
-        return `
-            <tr>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <img src="${product.image || CONFIG.DEFAULT_PRODUCT_IMAGE}" 
-                         alt="${product.name}" 
-                         class="w-16 h-16 object-cover rounded"
-                         onerror="this.src='${CONFIG.DEFAULT_PRODUCT_IMAGE}'">
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    ${product.name}<br>${Utils.truncateText(product.description || '', 50)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-green-600 text-sm">${Utils.formatCurrency(product.price)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full ${product.stock > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                        ${product.stock}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <button class="edit-product-btn text-blue-600 hover:text-blue-900 mr-2" data-id="${product.id}"><i class="fas fa-edit"></i></button>
-                    <button class="delete-product-btn text-red-600 hover:text-red-900" data-id="${product.id}"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `;
+    function renderOrderStats(list) {
+        document.getElementById('totalOrders').textContent = list.length;
+        document.getElementById('pendingPayment').textContent = list.filter(o => o.status === 'pending').length;
+        document.getElementById('processingOrders').textContent = list.filter(o => o.status === 'diproses').length;
+        document.getElementById('completedOrders').textContent = list.filter(o => o.status === 'selesai').length;
     }
 
-    renderStats() {
-        document.getElementById('totalOrders').textContent = this.orders.length;
-        document.getElementById('pendingPayment').textContent = this.orders.filter(o => o.payment_status === 'Pending').length;
-        document.getElementById('processingOrders').textContent = this.orders.filter(o => o.order_status === 'Diproses').length;
-        document.getElementById('completedOrders').textContent = this.orders.filter(o => o.order_status === 'Selesai').length;
-    }
+    // === Search & Filter ===
+    const debouncedFilter = Utils.debounce(() => {
+        const keyword = searchOrderInput.value.toLowerCase();
+        const status = filterStatusSelect.value;
+        const filtered = orders.filter(o => 
+            (o.id.toLowerCase().includes(keyword) || o.customerName.toLowerCase().includes(keyword)) &&
+            (status === '' || o.status === status)
+        );
+        renderOrdersTable(filtered);
+    }, 300);
 
-    // ===========================
-    // MODAL
-    // ===========================
-    showOrderModal(order) {
-        const modal = document.getElementById('orderModal');
-        const modalBody = document.getElementById('orderModalBody');
-        // ... bisa pakai template HTML sama seperti sebelumnya
-        modal.classList.add('active');
-    }
+    searchOrderInput.addEventListener('input', debouncedFilter);
+    filterStatusSelect.addEventListener('change', debouncedFilter);
 
-    hideOrderModal() { document.getElementById('orderModal').classList.remove('active'); }
+    closeOrderModalBtn.addEventListener('click', () => orderModal.classList.remove('active'));
 
-    showProductModal(product = null) {
-        const modal = document.getElementById('productModal');
-        const title = document.getElementById('productModalTitle');
-        const form = document.getElementById('productForm');
-
-        if (product) {
-            title.textContent = 'Edit Produk';
-            document.getElementById('productId').value = product.id;
-            document.getElementById('productName').value = product.name;
-            document.getElementById('productPrice').value = product.price;
-            document.getElementById('productStock').value = product.stock;
-            document.getElementById('productImage').value = product.image || '';
-            document.getElementById('productDescription').value = product.description || '';
-        } else {
-            title.textContent = 'Tambah Produk';
-            form.reset();
-            document.getElementById('productId').value = '';
-        }
-
-        modal.classList.add('active');
-    }
-
-    hideProductModal() { document.getElementById('productModal').classList.remove('active'); }
-
-    editProduct(productId) {
-        const product = this.products.find(p => p.id === productId);
-        if (product) this.showProductModal(product);
-    }
-
-    handleLogout() {
-        if (confirm('Apakah Anda yakin ingin logout?')) {
-            Utils.clearAdminSession();
-            Utils.showToast('Logout berhasil', 'success');
-            setTimeout(() => window.location.href = 'admin-login.html', 1000);
+    // === Load Products ===
+    async function loadProducts() {
+        try {
+            Utils.showLoading(document.body);
+            products = await Utils.getProducts();
+            renderProductsTable(products);
+        } catch (err) {
+            Utils.showToast('Gagal memuat produk', 'error');
+            console.error(err);
+        } finally {
+            Utils.hideLoading(document.body);
         }
     }
 
-    switchTab(tab) {
-        this.currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.toggle('border-green-500', btn.dataset.tab === tab);
-            btn.classList.toggle('text-green-600', btn.dataset.tab === tab);
-            btn.classList.toggle('border-transparent', btn.dataset.tab !== tab);
-            btn.classList.toggle('text-gray-600', btn.dataset.tab !== tab);
+    function renderProductsTable(list) {
+        productsTableBody.innerHTML = '';
+        list.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-4"><img src="${Utils.sanitizeHtml(p.image)}" class="w-16 h-16 object-cover rounded"></td>
+                <td class="px-6 py-4">${Utils.sanitizeHtml(p.name)}</td>
+                <td class="px-6 py-4">${Utils.formatCurrency(p.price)}</td>
+                <td class="px-6 py-4">${p.stock}</td>
+                <td class="px-6 py-4 space-x-2">
+                    <button class="edit-product-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded" data-id="${p.id}"><i class="fas fa-edit"></i></button>
+                    <button class="delete-product-btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded" data-id="${p.id}"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            productsTableBody.appendChild(tr);
         });
 
-        document.getElementById('ordersTab').classList.toggle('hidden', tab !== 'orders');
-        document.getElementById('productsTab').classList.toggle('hidden', tab !== 'products');
-    }
-}
+        document.querySelectorAll('.edit-product-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                editingProduct = products.find(p => p.id === id);
+                if (!editingProduct) return;
+                productModalTitle.textContent = 'Edit Produk';
+                productForm.productId.value = editingProduct.id;
+                productForm.productName.value = editingProduct.name;
+                productForm.productPrice.value = editingProduct.price;
+                productForm.productStock.value = editingProduct.stock;
+                productForm.productImage.value = editingProduct.image;
+                productForm.productDescription.value = editingProduct.description;
+                productModal.classList.add('active');
+            });
+        });
 
-// Global instance
-let adminDashboard;
-document.addEventListener('DOMContentLoaded', () => {
-    adminDashboard = new AdminDashboard();
+        document.querySelectorAll('.delete-product-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                if (!confirm('Hapus produk ini?')) return;
+                try {
+                    await Utils.deleteProduct({ id });
+                    Utils.showToast('Produk berhasil dihapus', 'success');
+                    loadProducts();
+                } catch (err) {
+                    Utils.showToast('Gagal menghapus produk', 'error');
+                    console.error(err);
+                }
+            });
+        });
+    }
+
+    // === Product Modal Handlers ===
+    addProductBtn.addEventListener('click', () => {
+        editingProduct = null;
+        productModalTitle.textContent = 'Tambah Produk';
+        productForm.reset();
+        productModal.classList.add('active');
+    });
+
+    closeProductModalBtn.addEventListener('click', () => productModal.classList.remove('active'));
+    cancelProductBtn.addEventListener('click', () => productModal.classList.remove('active'));
+
+    productForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = {
+            id: productForm.productId.value,
+            name: productForm.productName.value,
+            price: parseFloat(productForm.productPrice.value),
+            stock: parseInt(productForm.productStock.value),
+            image: productForm.productImage.value,
+            description: productForm.productDescription.value
+        };
+        try {
+            if (editingProduct) {
+                await Utils.editProduct(data);
+                Utils.showToast('Produk berhasil diupdate', 'success');
+            } else {
+                await Utils.createProduct(data);
+                Utils.showToast('Produk berhasil ditambahkan', 'success');
+            }
+            productModal.classList.remove('active');
+            loadProducts();
+        } catch (err) {
+            Utils.showToast('Gagal menyimpan produk', 'error');
+            console.error(err);
+        }
+    });
+
+    // === Initial Load ===
+    loadOrders();
+    loadProducts();
 });
