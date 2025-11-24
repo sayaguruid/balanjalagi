@@ -106,31 +106,39 @@ class Utils {
     }
 
     // API call helper
-    static async apiCall(endpoint, options = {}) {
-        const url = `${CONFIG.API_BASE_URL}${endpoint}`;
-        const defaultOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        };
+    static async apiCall(path, options = {}) {
+    // Jika path tidak dimulai dengan '?', tambahkan otomatis
+    // Sehingga pemanggilan /products → ?path=products
+    let url = '';
 
-        const finalOptions = { ...defaultOptions, ...options };
-        
-        try {
-            const response = await fetch(url, finalOptions);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('API call failed:', error);
-            throw error;
-        }
+    if (path.startsWith('?')) {
+        url = `${CONFIG.API_BASE_URL}${path}`;
+    } else {
+        url = `${CONFIG.API_BASE_URL}?path=${path}`;
     }
+
+    const defaultOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    };
+
+    const finalOptions = { ...defaultOptions, ...options };
+
+    try {
+        const response = await fetch(url, finalOptions);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("API call failed:", error);
+        throw error;
+    }
+}
 
     // Get URL parameters
     static getUrlParameter(name) {
@@ -292,4 +300,5 @@ class Utils {
 // Export for use in other files
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Utils;
+
 }
