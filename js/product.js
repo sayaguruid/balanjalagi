@@ -1,5 +1,3 @@
-// JavaScript for product.html (Product Detail)
-
 class ProductDetail {
     constructor() {
         this.product = null;
@@ -14,29 +12,18 @@ class ProductDetail {
     }
 
     setupEventListeners() {
-        const decreaseBtn = document.getElementById('decreaseQty');
-        const increaseBtn = document.getElementById('increaseQty');
-        const quantityInput = document.getElementById('quantity');
-
-        decreaseBtn?.addEventListener('click', () => {
-            if (this.quantity > 1) {
-                this.quantity--;
-                this.updateQuantity();
-            }
+        document.getElementById('decreaseQty')?.addEventListener('click', () => {
+            if (this.quantity > 1) { this.quantity--; this.updateQuantity(); }
         });
 
-        increaseBtn?.addEventListener('click', () => {
-            if (this.product && this.quantity < this.product.stock) {
-                this.quantity++;
-                this.updateQuantity();
-            } else {
-                Utils.showToast('Stok tidak mencukupi', 'warning');
-            }
+        document.getElementById('increaseQty')?.addEventListener('click', () => {
+            if (this.product && this.quantity < this.product.stock) { this.quantity++; this.updateQuantity(); }
+            else Utils.showToast('Stok tidak mencukupi', 'warning');
         });
 
-        quantityInput?.addEventListener('change', (e) => {
+        document.getElementById('quantity')?.addEventListener('change', (e) => {
             const newQuantity = parseInt(e.target.value);
-            if (newQuantity > 0 && this.product && newQuantity <= this.product.stock) {
+            if (!isNaN(newQuantity) && newQuantity > 0 && this.product && newQuantity <= this.product.stock) {
                 this.quantity = newQuantity;
                 this.updateQuantity();
             } else {
@@ -45,22 +32,18 @@ class ProductDetail {
             }
         });
 
-        const orderBtn = document.getElementById('orderBtn');
-        orderBtn?.addEventListener('click', () => this.goToOrder());
+        document.getElementById('orderBtn')?.addEventListener('click', () => this.goToOrder());
     }
 
     async loadProduct() {
         try {
             const productId = Utils.getUrlParameter('id');
-            if (!productId) {
-                this.showError();
-                return;
-            }
+            if (!productId) { this.showError(); return; }
 
             Utils.showLoading(document.getElementById('loadingState'));
 
-            const response = await Utils.apiCall(`?action=getProduct&id=${productId}`);
-            this.product = response.product;
+            const response = await Utils.apiCall(`get-product?id=${productId}`);
+            this.product = response?.product;
 
             Utils.hideLoading(document.getElementById('loadingState'));
 
@@ -75,21 +58,14 @@ class ProductDetail {
     }
 
     renderProduct() {
-        if (!this.product) {
-            this.showError();
-            return;
-        }
+        if (!this.product) { this.showError(); return; }
 
-        const productDetail = document.getElementById('productDetail');
-        const loadingState = document.getElementById('loadingState');
-        const errorState = document.getElementById('errorState');
-
-        document.getElementById('productImage').src = this.product.image || CONFIG.DEFAULT_PRODUCT_IMAGE;
-        document.getElementById('productImage').alt = this.product.name;
-        document.getElementById('productName').textContent = this.product.name;
-        document.getElementById('productPrice').textContent = Utils.formatCurrency(this.product.price);
-        document.getElementById('productStock').textContent = this.product.stock > 0 ? `${this.product.stock} item` : 'Habis';
-        document.getElementById('productDescription').textContent = this.product.description || 'Tidak ada deskripsi';
+        document.getElementById('productImage')?.setAttribute('src', this.product.image || CONFIG.DEFAULT_PRODUCT_IMAGE);
+        document.getElementById('productImage')?.setAttribute('alt', this.product.name);
+        document.getElementById('productName')?.textContent = this.product.name;
+        document.getElementById('productPrice')?.textContent = Utils.formatCurrency(this.product.price);
+        document.getElementById('productStock')?.textContent = this.product.stock > 0 ? `${this.product.stock} item` : 'Habis';
+        document.getElementById('productDescription')?.textContent = this.product.description || 'Tidak ada deskripsi';
 
         const quantityInput = document.getElementById('quantity');
         if (quantityInput) quantityInput.max = this.product.stock;
@@ -99,16 +75,16 @@ class ProductDetail {
         const orderBtn = document.getElementById('orderBtn');
         if (orderBtn) {
             orderBtn.disabled = this.product.stock <= 0;
-            if (this.product.stock <= 0) {
-                orderBtn.textContent = 'Stok Habis';
-                orderBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                orderBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-            }
+            orderBtn.textContent = this.product.stock > 0 ? 'Pesan Sekarang' : 'Stok Habis';
+            orderBtn.classList.toggle('bg-gray-400', this.product.stock <= 0);
+            orderBtn.classList.toggle('cursor-not-allowed', this.product.stock <= 0);
+            orderBtn.classList.toggle('bg-green-600', this.product.stock > 0);
+            orderBtn.classList.toggle('hover:bg-green-700', this.product.stock > 0);
         }
 
-        productDetail.classList.remove('hidden');
-        loadingState.classList.add('hidden');
-        errorState.classList.add('hidden');
+        document.getElementById('productDetail')?.classList.remove('hidden');
+        document.getElementById('loadingState')?.classList.add('hidden');
+        document.getElementById('errorState')?.classList.add('hidden');
 
         document.title = `${this.product.name} - ${CONFIG.SITE_NAME}`;
     }
@@ -120,10 +96,8 @@ class ProductDetail {
     }
 
     updateTotalPrice() {
-        if (this.product) {
-            const totalPrice = this.product.price * this.quantity;
-            document.getElementById('totalPrice').textContent = Utils.formatCurrency(totalPrice);
-        }
+        const total = this.product && this.quantity ? this.product.price * this.quantity : 0;
+        document.getElementById('totalPrice')?.textContent = Utils.formatCurrency(total);
     }
 
     goToOrder() {
@@ -132,13 +106,11 @@ class ProductDetail {
             return;
         }
 
-        const orderData = {
+        sessionStorage.setItem('orderData', JSON.stringify({
             product: this.product,
             quantity: this.quantity,
             totalPrice: this.product.price * this.quantity
-        };
-
-        sessionStorage.setItem('orderData', JSON.stringify(orderData));
+        }));
         window.location.href = 'order.html';
     }
 
@@ -149,6 +121,4 @@ class ProductDetail {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    new ProductDetail();
-});
+document.addEventListener('DOMContentLoaded', () => new ProductDetail());
