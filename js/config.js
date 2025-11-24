@@ -1,7 +1,7 @@
 // Configuration file for the e-commerce website
 const CONFIG = {
     // Google Apps Script URL - Ganti dengan URL Apps Script Anda setelah deploy
-    API_BASE_URL: 'https://script.google.com/macros/s/AKfycbwjNPRowheb0lZOXu8j0eygufVVB2pJPuYJMDANTXDCTbelOVB3m_pKk31sdj83SqAe/exec',
+    API_BASE_URL: 'https://script.google.com/macros/s/AKfycbxU-mSV1fTeqsn-DNFnyMuPurj6WH2WdvGGVJ6-m87aJ4SJ9EZ1iH1Apm0BrJx_NbcKyw/exec',
     
     // Website Configuration
     SITE_NAME: 'Toko Online',
@@ -83,4 +83,5 @@ const CONFIG = {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CONFIG;
 }
+
 
